@@ -178,35 +178,4 @@ namespace ChatServer
             catch { }
         }
     }
-
-    /// <summary>
-    /// Test client program - separate from the main server
-    /// </summary>
-    public class TestClientProgram
-    {
-        public static async Task Main(string[] args)
-        {
-            Console.WriteLine("=== Chat Server Test Client ===");
-            
-            string serverIp = "127.0.0.1";
-            int port = 8888;
-            string username = "TestUser";
-
-            if (args.Length > 0) username = args[0];
-            if (args.Length > 1) serverIp = args[1];
-            if (args.Length > 2 && int.TryParse(args[2], out int customPort)) port = customPort;
-
-            try
-            {
-                var client = new TestClient(serverIp, port, username);
-                await client.StartAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to connect: {ex.Message}");
-                Console.WriteLine("Press any key to exit...");
-                Console.ReadKey();
-            }
-        }
-    }
 } 
