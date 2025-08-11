@@ -110,6 +110,13 @@ namespace ChatServer
                     
                     Console.WriteLine($"New client connected. Total clients: {_clients.Count}");
                     
+                    // Display connected usernames if any
+                    var usernames = GetConnectedUsernames().ToList();
+                    if (usernames.Count > 0)
+                    {
+                        Console.WriteLine($"Connected users: {string.Join(", ", usernames)}");
+                    }
+                    
                     // Start handling the client in a separate task
                     _ = Task.Run(async () =>
                     {
@@ -153,6 +160,17 @@ namespace ChatServer
                 clientHandler.ClientDisconnected -= OnClientDisconnected;
                 
                 Console.WriteLine($"Client {clientId} removed. Total clients: {_clients.Count}");
+                
+                // Display remaining connected usernames if any
+                var usernames = GetConnectedUsernames().ToList();
+                if (usernames.Count > 0)
+                {
+                    Console.WriteLine($"Remaining users: {string.Join(", ", usernames)}");
+                }
+                else
+                {
+                    Console.WriteLine("No users connected.");
+                }
             }
         }
 

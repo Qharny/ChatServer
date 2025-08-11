@@ -77,6 +77,9 @@ namespace ChatServer
 
             // Start the command processing loop in a separate task
             _ = Task.Run(ProcessCommandsAsync);
+            
+            // Start periodic status display
+            _ = Task.Run(PeriodicStatusDisplayAsync);
         }
 
         /// <summary>
@@ -188,6 +191,30 @@ namespace ChatServer
             Console.WriteLine("  help  - Show this help");
             Console.WriteLine("  quit  - Stop the server and exit");
             Console.WriteLine("  exit  - Stop the server and exit");
+        }
+
+        /// <summary>
+        /// Periodically displays server status including connected user count
+        /// </summary>
+        private static async Task PeriodicStatusDisplayAsync()
+        {
+            while (_isRunning && _server != null)
+            {
+                try
+                {
+                    await Task.Delay(30000); // Wait 30 seconds
+                    
+                    if (_isRunning && _server != null)
+                    {
+                        int connectedCount = _server.ConnectedClientsCount;
+                        Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Status: {connectedCount} user(s) connected");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error in status display: {ex.Message}");
+                }
+            }
         }
     }
 }

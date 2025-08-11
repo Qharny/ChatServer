@@ -85,5 +85,14 @@ namespace ChatServer
         {
             return new ChatMessage("Chat", from, message, to);
         }
+
+        /// <summary>
+        /// Creates a user list message containing the list of online users
+        /// </summary>
+        public static ChatMessage CreateUserListMessage(List<string> usernames)
+        {
+            var userListJson = System.Text.Json.JsonSerializer.Serialize(usernames);
+            return new ChatMessage("UserList", "Server", userListJson);
+        }
     }
 } 

@@ -164,6 +164,12 @@ namespace ChatServer
                     case "disconnect":
                         await HandleDisconnectMessageAsync(chatMessage);
                         break;
+                    case "private":
+                        await HandlePrivateMessageAsync(chatMessage);
+                        break;
+                    case "userlist":
+                        await HandleUserListRequestAsync(chatMessage);
+                        break;
                     default:
                         await SendMessageAsync(ChatMessage.CreateSystemMessage($"Unknown message type: {chatMessage.Type}"));
                         break;
@@ -195,9 +201,19 @@ namespace ChatServer
             _username = message.From.Trim();
             Console.WriteLine($"Client {_clientId} set username to: {_username}");
 
+            // Send current user list to the new client
+            var userList = _server.GetConnectedUsernames().ToList();
+            var userListMessage = ChatMessage.CreateUserListMessage(userList);
+            await SendMessageAsync(userListMessage);
+
             // Notify all clients about the new connection
             var connectNotification = ChatMessage.CreateConnectMessage(_username);
             await _server.BroadcastMessageAsync(connectNotification, this);
+
+            // Send updated user list to all clients
+            var updatedUserList = _server.GetConnectedUsernames().ToList();
+            var updatedUserListMessage = ChatMessage.CreateUserListMessage(updatedUserList);
+            await _server.BroadcastMessageAsync(updatedUserListMessage);
 
             // Send confirmation to the client
             await SendMessageAsync(ChatMessage.CreateSystemMessage($"Connected as {_username}"));
@@ -233,6 +249,56 @@ namespace ChatServer
         private async Task HandleDisconnectMessageAsync(ChatMessage message)
         {
             await DisconnectAsync();
+        }
+
+        /// <summary>
+        /// Handles a private message between users
+        /// </summary>
+        private async Task HandlePrivateMessageAsync(ChatMessage message)
+        {
+            if (string.IsNullOrWhiteSpace(_username))
+            {
+                await SendMessageAsync(ChatMessage.CreateSystemMessage("Please set your username first"));
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(message.To))
+            {
+                await SendMessageAsync(ChatMessage.CreateSystemMessage("Recipient username is required for private messages"));
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(message.Message))
+            {
+                await SendMessageAsync(ChatMessage.CreateSystemMessage("Message cannot be empty"));
+                return;
+            }
+
+            // Create a private message with the correct sender
+            var privateMessage = ChatMessage.CreateChatMessage(_username, message.Message, message.To);
+            
+            // Send to the specific recipient
+            await _server.SendMessageToUserAsync(privateMessage, message.To);
+            
+            // Send confirmation to the sender
+            var confirmationMessage = ChatMessage.CreateSystemMessage($"Private message sent to {message.To}");
+            await SendMessageAsync(confirmationMessage);
+        }
+
+        /// <summary>
+        /// Handles a userlist request message
+        /// </summary>
+        private async Task HandleUserListRequestAsync(ChatMessage message)
+        {
+            if (string.IsNullOrWhiteSpace(_username))
+            {
+                await SendMessageAsync(ChatMessage.CreateSystemMessage("Please set your username first"));
+                return;
+            }
+
+            var userList = _server.GetConnectedUsernames().ToList();
+            var userListMessage = ChatMessage.CreateUserListMessage(userList);
+            await SendMessageAsync(userListMessage);
         }
 
         /// <summary>
@@ -281,6 +347,11 @@ namespace ChatServer
                     var disconnectNotification = ChatMessage.CreateDisconnectMessage(_username);
                     await _server.BroadcastMessageAsync(disconnectNotification, this);
                 }
+
+                // Send updated user list to remaining clients
+                var updatedUserList = _server.GetConnectedUsernames().ToList();
+                var updatedUserListMessage = ChatMessage.CreateUserListMessage(updatedUserList);
+                await _server.BroadcastMessageAsync(updatedUserListMessage);
 
                 // Close the connection
                 _stream?.Close();
